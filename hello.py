@@ -11,8 +11,6 @@ AUDIO_TRACK_FOR_CLIPS = 1
 TEXT_TRACK_INDEX = 2
 DEFAULT_TEXT_DURATION_FRAMES = 120
 
-GAP_DURATION_SECONDS = 1.0  # Duration of the gap between clips in seconds
-
 clips_data = [
     ("0:44", "0:49", "Faith & Empowerment Series"),
     ("2:38", "2:45", "Empowering Local Peacebuilders"),
@@ -43,10 +41,8 @@ def timecode_to_frames(tc_str, frame_rate):
 
 
 # --- MAIN SCRIPT LOGIC ---
-def create_teaser_with_gaps_mp4():  # Renamed function slightly for clarity
-    print(
-        "--- Starting Teaser Creation with Gaps (MP4 Source) using AppendToTimeline ---"
-    )
+def create_teaser():  # Simplified name without gaps reference
+    print("--- Starting Teaser Creation (MP4 Source) using AppendToTimeline ---")
 
     resolve = app.GetResolve()
     projectManager = resolve.GetProjectManager()
@@ -91,11 +87,6 @@ def create_teaser_with_gaps_mp4():  # Renamed function slightly for clarity
         print("Error getting timeline FPS. Defaulting to 24.0")
         timeline_frame_rate = 24.0
     print(f"Timeline frame rate: {timeline_frame_rate} fps")
-
-    gap_duration_frames = int(GAP_DURATION_SECONDS * timeline_frame_rate)
-    print(
-        f"Gap duration: {GAP_DURATION_SECONDS} seconds ({gap_duration_frames} frames)"
-    )
 
     source_media_item = None
     rootFolder = mediaPool.GetRootFolder()
@@ -234,83 +225,11 @@ def create_teaser_with_gaps_mp4():  # Renamed function slightly for clarity
             print(f"  Failed to append content clip {i + 1}.")
             current_timeline_write_pos_frames += clip_segment_duration_frames
 
-        if i < total_clips - 1 and gap_duration_frames > 0:
-            print(f"  Adding gap of {gap_duration_frames} frames.")
-            gap_record_frame = current_timeline_write_pos_frames
-
-            slug_params = {
-                "trackIndex": VIDEO_TRACK_FOR_CLIPS,
-                "recordFrame": gap_record_frame,
-                "duration": gap_duration_frames,
-            }
-            black_slug_item = None
-            generator_name_to_try = "Solid Color"
-            if (
-                fusion
-                and fusion.GetToolList("Generator")
-                and generator_name_to_try in fusion.GetToolList("Generator")
-            ):
-                black_slug_item = timeline.InsertGeneratorIntoTimeline(
-                    generator_name_to_try, slug_params
-                )
-                if black_slug_item:
-                    comp = black_slug_item.GetFusionCompByIndex(1)
-                    if comp:
-                        tools = comp.GetToolList(False)
-                        solid_color_tool = None
-                        if tools:
-                            for tid in list(tools.keys()):
-                                t = tools.get(tid)
-                                if t and (
-                                    t.GetAttrs().get("TOOLS_RegID") == "Background"
-                                    or t.GetAttrs().get("TOOLS_RegID") == "SolidColor"
-                                ):
-                                    solid_color_tool = t
-                                    break
-                        if solid_color_tool:
-                            if "TopLeftRed" in solid_color_tool.GetInputList():
-                                solid_color_tool.SetInput("TopLeftRed", 0.0, 0)
-                                solid_color_tool.SetInput("TopLeftGreen", 0.0, 0)
-                                solid_color_tool.SetInput("TopLeftBlue", 0.0, 0)
-                                solid_color_tool.SetInput("TopLeftAlpha", 1.0, 0)
-                                print(f"    Gap (Solid Color set to black) added.")
-                            elif hasattr(solid_color_tool, "Color") and hasattr(
-                                solid_color_tool.Color, "Red"
-                            ):  # Check for grouped color
-                                solid_color_tool.Color.Red = 0.0
-                                solid_color_tool.Color.Green = 0.0
-                                solid_color_tool.Color.Blue = 0.0
-                                solid_color_tool.Color.Alpha = 1.0  # Ensure opaque
-                                print(
-                                    f"    Gap (Solid Color set to black via Color group) added."
-                                )
-                            else:
-                                print(
-                                    f"    Warning: Could not set color for '{generator_name_to_try}'."
-                                )
-                        else:
-                            print(
-                                f"    Warning: Tool not found within '{generator_name_to_try}'."
-                            )
-                    else:
-                        print(f"    Warning: FusionComp not found for gap slug.")
-                else:
-                    print(f"    Failed to insert '{generator_name_to_try}' for gap.")
-            else:
-                print(
-                    f"    Warning: Generator '{generator_name_to_try}' not found. Skipping gap."
-                )
-
-            if black_slug_item:
-                current_timeline_write_pos_frames += gap_duration_frames
-            else:
-                print(f"    Failed to add gap after clip {i + 1}.")
-
-    print(f"\n--- Teaser with gaps (MP4) attempt complete: '{timeline.GetName()}' ---")
-    print("Review timeline for clip segments, gaps, and text placement.")
+    print(f"\n--- Teaser creation complete: '{timeline.GetName()}' ---")
+    print("Review timeline for clip segments and text placement.")
 
 
 # --- To Run ---
 # Paste into Resolve console (Workspace > Console, Py3)
 # Then type:
-# create_teaser_with_gaps_mp4()
+# create_teaser()
