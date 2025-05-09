@@ -1,5 +1,6 @@
-# Script to run in DaVinci Resolve Console, using AppendToTimeline for media clips.
-# This version is simplified to focus on AppendToTimeline and removes text/Fusion features.
+# In free DVR, cannot install scripts. Instead run following in Workspace > Console
+# exec(open(r"C:\Users\adg\git\happy-video\hello.py").read()) # shows nothing
+# create_simplified_teaser()
 
 import time
 
@@ -151,29 +152,20 @@ def create_simplified_teaser():
             f"Processing clip {i + 1}/{total_clips_to_process}: Source In {start_tc} Out {end_tc}"
         )
 
-        appended_timeline_items = mediaPool.AppendToTimeline(
-            {
-                "mediaPoolItem": source_media_item,
-                "startFrame": start_frames_source,
-                "endFrame": end_frames_source - 1,
-            }
-        )
-        time.sleep(0.4)  # Short pause for stability, adjust if necessary
+        clipInfo = {
+            "mediaPoolItem": source_media_item,
+            "startFrame": start_frames_source,
+            "endFrame": end_frames_source - 1,
+        }
+        print(f"  Clip: {clipInfo}")
 
-        if appended_timeline_items:
-            # appended_timeline_items is a list of TimelineItem objects that were added.
+        appended_timeline_items = mediaPool.AppendToTimeline([clipInfo])
+        if not appended_timeline_items:
             print(
-                f"    Successfully appended {len(appended_timeline_items)} component(s) to the timeline for this segment."
+                f"Error: Failed to append clip {i + 1}/{total_clips_to_process} to timeline."
             )
-        else:
-            # This might mean an empty list was returned (e.g., if media type not found in source for that segment)
-            # or None/False if the call failed more generally (less common in newer APIs).
-            print(
-                f"  Warning/Error: AppendToTimeline for clip {i + 1} returned: {appended_timeline_items}. Review timeline and source clip properties."
-            )
-            print(
-                f"    (This could happen if the source clip doesn't have the requested mediaType for the segment, e.g. no audio)."
-            )
+            continue
+        time.sleep(0.4)  # Short pause for stability, adjust if necessary
 
     print(
         f"\n--- Simplified teaser creation complete for timeline: '{timeline.GetName()}' ---"
