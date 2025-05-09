@@ -1,16 +1,16 @@
-# Script to run in DaVinci Resolve Console, using AppendToTimeline and adding gaps
-# Updated SOURCE_MEDIA_NAME
+# Script to run in DaVinci Resolve Console, using AppendToTimeline for media clips.
+# This version is simplified to focus on AppendToTimeline and removes text/Fusion features.
 
 import time
 
 # --- CONFIGURATION ---
-SOURCE_MEDIA_NAME = "Peacemaking - Render 1.mp4"  # <<<< UPDATED
-TARGET_TIMELINE_NAME = "Append_Teaser_Gaps_MP4_V1"  # Adjusted for new run
-VIDEO_TRACK_FOR_CLIPS = 1
-AUDIO_TRACK_FOR_CLIPS = 1
-TEXT_TRACK_INDEX = 2
-DEFAULT_TEXT_DURATION_FRAMES = 120
+SOURCE_MEDIA_NAME = "Peacemaking - Render 1.mp4"  # Source media file name
+TARGET_TIMELINE_NAME = "Append_Teaser_Simplified_V2"  # Timeline name for this version
+VIDEO_TRACK_FOR_CLIPS = 1  # Target video track (1-indexed). 0 or less means no video.
+AUDIO_TRACK_FOR_CLIPS = 1  # Target audio track (1-indexed). 0 or less means no audio.
 
+# Clips data: (start_timecode, end_timecode, optional_description)
+# The third element (text content/description) from the original script is ignored here.
 clips_data = [
     ("0:44", "0:49", "Faith & Empowerment Series"),
     ("2:38", "2:45", "Empowering Local Peacebuilders"),
@@ -28,46 +28,59 @@ clips_data = [
 
 # --- HELPER FUNCTION ---
 def timecode_to_frames(tc_str, frame_rate):
-    parts = list(map(int, tc_str.split(":")))
-    if len(parts) == 3:
-        h, m, s = parts
-    elif len(parts) == 2:
-        h = 0
-        m, s = parts
+    """Converts timecode string (H:M:S, M:S, or S) to frame count."""
+    parts_str = tc_str.split(":")
+    s_val, m_val, h_val = 0, 0, 0
+
+    if len(parts_str) == 1:  # Seconds only
+        s_val = int(parts_str[0])
+    elif len(parts_str) == 2:  # Minutes:Seconds
+        m_val = int(parts_str[0])
+        s_val = int(parts_str[1])
+    elif len(parts_str) == 3:  # Hours:Minutes:Seconds
+        h_val = int(parts_str[0])
+        m_val = int(parts_str[1])
+        s_val = int(parts_str[2])
     else:
         print(f"Error: Invalid timecode format: {tc_str}")
         return 0
-    return int((h * 3600 + m * 60 + s) * frame_rate)
+    return int((h_val * 3600 + m_val * 60 + s_val) * frame_rate)
 
 
 # --- MAIN SCRIPT LOGIC ---
-def create_teaser():  # Simplified name without gaps reference
-    print("--- Starting Teaser Creation (MP4 Source) using AppendToTimeline ---")
+def create_simplified_teaser():
+    print(f"--- Starting Simplified Teaser Creation using AppendToTimeline ---")
 
-    resolve = app.GetResolve()
+    # Get Resolve objects
+    try:
+        resolve = app.GetResolve()  # type: ignore
+    except NameError:
+        print("Error: DaVinci Resolve 'app' object not found.")
+        return
+
     projectManager = resolve.GetProjectManager()
     project = projectManager.GetCurrentProject()
     mediaPool = project.GetMediaPool()
-    fusion = resolve.Fusion()
 
     if not project:
         print("Error: No project open.")
         return
     print(f"Working with project: {project.GetName()}")
 
-    existing_timeline = None
+    # Find existing timeline or create a new one
+    timeline = None
+    # Check existing timelines
     for i in range(1, project.GetTimelineCount() + 1):
         t = project.GetTimelineByIndex(i)
         if t and t.GetName() == TARGET_TIMELINE_NAME:
-            existing_timeline = t
+            timeline = t
             break
 
-    if existing_timeline:
+    if timeline:
         print(f"Timeline '{TARGET_TIMELINE_NAME}' exists. Using it.")
-        timeline = existing_timeline
         project.SetCurrentTimeline(timeline)
         print(
-            "Warning: Appending to existing timeline. Clear manually or use new name for clean slate."
+            f"Warning: Appending to existing timeline '{TARGET_TIMELINE_NAME}'. For a clean slate, clear it manually or use a new target timeline name."
         )
     else:
         print(f"Creating new timeline: {TARGET_TIMELINE_NAME}")
@@ -75,24 +88,27 @@ def create_teaser():  # Simplified name without gaps reference
         if not timeline:
             print(f"Error: Failed to create timeline: {TARGET_TIMELINE_NAME}")
             return
-        project.SetCurrentTimeline(timeline)
+        project.SetCurrentTimeline(timeline)  # Important for new timelines
 
     if not timeline:
-        print("Error: Could not set/create timeline.")
+        print("Error: Could not set or create timeline.")
         return
+
     print(f"Using timeline: {timeline.GetName()}")
     try:
         timeline_frame_rate = float(timeline.GetSetting("timelineFrameRate"))
-    except:
-        print("Error getting timeline FPS. Defaulting to 24.0")
+    except Exception as e:
+        print(f"Error getting timeline frame rate: {e}. Defaulting to 24.0 fps.")
         timeline_frame_rate = 24.0
     print(f"Timeline frame rate: {timeline_frame_rate} fps")
 
+    # Find source media item
     source_media_item = None
+
     rootFolder = mediaPool.GetRootFolder()
-    items = rootFolder.GetClipList()
-    if items:
-        for item in items:
+    items_in_root = rootFolder.GetClipList()
+    if items_in_root:
+        for item in items_in_root:
             if item and item.GetName() == SOURCE_MEDIA_NAME:
                 source_media_item = item
                 break
@@ -105,131 +121,71 @@ def create_teaser():  # Simplified name without gaps reference
                         break
             if source_media_item:
                 break
+
     if not source_media_item:
-        print(f"Error: Source media '{SOURCE_MEDIA_NAME}' not found.")
+        print(f"Error: Source media '{SOURCE_MEDIA_NAME}' not found in Media Pool.")
         return
     print(f"Found source media: {source_media_item.GetName()}")
 
-    max_video_track_needed = max(VIDEO_TRACK_FOR_CLIPS, TEXT_TRACK_INDEX)
-    while timeline.GetTrackCount("video") < max_video_track_needed:
-        if not timeline.AddTrack("video"):
-            print("Error: Failed to add video track.")
-            return
-        time.sleep(0.1)
-    while timeline.GetTrackCount("audio") < AUDIO_TRACK_FOR_CLIPS:
-        if not timeline.AddTrack("audio"):
-            print("Error: Failed to add audio track.")
-            return
-        time.sleep(0.1)
-    print(
-        f"Video tracks: {timeline.GetTrackCount('video')}, Audio tracks: {timeline.GetTrackCount('audio')}"
-    )
-
-    if not callable(mediaPool.AppendToTimeline):
-        print("Error: mediaPool.AppendToTimeline not callable.")
+    # Check if AppendToTimeline is available
+    if not callable(getattr(mediaPool, "AppendToTimeline", None)):
+        print("Error: mediaPool.AppendToTimeline is not available or not callable.")
         return
 
-    current_timeline_write_pos_frames = timeline.GetEndFrame()
-    if current_timeline_write_pos_frames is None:
-        start_frame_setting = timeline.GetSetting("timelineStartFrame")
-        current_timeline_write_pos_frames = (
-            int(start_frame_setting) if start_frame_setting else 0
-        )
+    # Process and append clips
+    total_clips_to_process = len(clips_data)
+    for i, clip_info_tuple in enumerate(clips_data):
+        # Unpack, ignoring the third element (description/text)
+        start_tc, end_tc = clip_info_tuple[0], clip_info_tuple[1]
 
-    total_clips = len(clips_data)
-    for i, (start_tc, end_tc, text_content) in enumerate(clips_data):
         start_frames_source = timecode_to_frames(start_tc, timeline_frame_rate)
         end_frames_source = timecode_to_frames(end_tc, timeline_frame_rate)
-        clip_segment_duration_frames = end_frames_source - start_frames_source
 
-        if clip_segment_duration_frames <= 0:
+        if end_frames_source <= start_frames_source:
             print(
-                f"Warning: Clip {i + 1} ('{start_tc}'-'{end_tc}') has zero/negative duration. Skipping."
+                f"Warning: Clip {i + 1}/{total_clips_to_process} ('{start_tc}' - '{end_tc}') has zero or negative duration. Skipping."
             )
             continue
 
-        print(f"Processing clip {i + 1}/{total_clips}: Source {start_tc}-{end_tc}")
+        print(
+            f"Processing clip {i + 1}/{total_clips_to_process}: Source In {start_tc} Out {end_tc}"
+        )
 
-        clip_to_append_info = {
-            "mediaPoolItem": source_media_item,
-            "startFrame": start_frames_source,
-            "endFrame": end_frames_source - 1,
-        }
-        print(f"  Attempting to append content clip: {clip_to_append_info}")
-        appended_content_items = mediaPool.AppendToTimeline([clip_to_append_info])
-        time.sleep(0.3)
+        appended_timeline_items = mediaPool.AppendToTimeline(
+            {
+                "mediaPoolItem": source_media_item,
+                "startFrame": start_frames_source,
+                "endFrame": end_frames_source - 1,
+            }
+        )
+        time.sleep(0.4)  # Short pause for stability, adjust if necessary
 
-        if appended_content_items:
-            print(f"    Content clip appended. Items: {appended_content_items}")
-            actual_content_clip_on_timeline = (
-                appended_content_items[0] if appended_content_items else None
+        if appended_timeline_items:
+            # appended_timeline_items is a list of TimelineItem objects that were added.
+            print(
+                f"    Successfully appended {len(appended_timeline_items)} component(s) to the timeline for this segment."
+            )
+        else:
+            # This might mean an empty list was returned (e.g., if media type not found in source for that segment)
+            # or None/False if the call failed more generally (less common in newer APIs).
+            print(
+                f"  Warning/Error: AppendToTimeline for clip {i + 1} returned: {appended_timeline_items}. Review timeline and source clip properties."
+            )
+            print(
+                f"    (This could happen if the source clip doesn't have the requested mediaType for the segment, e.g. no audio)."
             )
 
-            if actual_content_clip_on_timeline:
-                if text_content:
-                    text_record_frame = current_timeline_write_pos_frames
-                    print(
-                        f"    Adding text: '{text_content}' at timeline frame {text_record_frame}"
-                    )
-                    text_title_params = {
-                        "trackIndex": TEXT_TRACK_INDEX,
-                        "recordFrame": text_record_frame,
-                        "duration": min(
-                            clip_segment_duration_frames, DEFAULT_TEXT_DURATION_FRAMES
-                        ),
-                    }
-                    text_timeline_item = None
-                    generator_list = fusion.GetToolList("Generator") if fusion else None
-                    if generator_list and "TextPlus" in generator_list:
-                        text_timeline_item = timeline.InsertGeneratorIntoTimeline(
-                            "TextPlus", text_title_params
-                        )
-                    else:
-                        text_timeline_item = timeline.InsertTitleIntoTimeline(
-                            "Text+", text_title_params
-                        )
-                    time.sleep(0.3)
-
-                    if text_timeline_item:
-                        comp = text_timeline_item.GetFusionCompByIndex(1)
-                        if comp:
-                            tools = comp.GetToolList(False)
-                            text_tool = None
-                            if tools:
-                                for tid in list(tools.keys()):
-                                    t = tools.get(tid)
-                                    if (
-                                        t
-                                        and t.GetAttrs().get("TOOLS_RegID")
-                                        == "TextPlus"
-                                    ):
-                                        text_tool = t
-                                        break
-                            if text_tool:
-                                text_tool.SetInput("StyledText", text_content, 0)
-                                print(f"      Text set.")
-                            else:
-                                print(f"    Warning: TextPlus tool not found for text.")
-                        else:
-                            print(f"    Warning: FusionComp not found for text.")
-                    else:
-                        print(f"    Warning: Failed to insert text title.")
-
-                current_timeline_write_pos_frames += clip_segment_duration_frames
-            else:
-                print(
-                    f"  Warning: Content clip appended but couldn't get TimelineItem."
-                )
-                current_timeline_write_pos_frames += clip_segment_duration_frames
-        else:
-            print(f"  Failed to append content clip {i + 1}.")
-            current_timeline_write_pos_frames += clip_segment_duration_frames
-
-    print(f"\n--- Teaser creation complete: '{timeline.GetName()}' ---")
-    print("Review timeline for clip segments and text placement.")
+    print(
+        f"\n--- Simplified teaser creation complete for timeline: '{timeline.GetName()}' ---"
+    )
+    print("Please review the timeline for the appended clip segments.")
 
 
-# --- To Run ---
-# Paste into Resolve console (Workspace > Console, Py3)
-# Then type:
-# create_teaser()
+# --- HOW TO RUN ---
+# 1. Open DaVinci Resolve.
+# 2. Open your project and ensure the source media (e.g., "Peacemaking - Render 1.mp4") is in the Media Pool.
+# 3. Go to Workspace > Console.
+# 4. In the console, ensure you are in the 'Py3' environment.
+# 5. Paste this entire script into the console and press Enter.
+# 6. Then, type the following command and press Enter:
+# create_simplified_teaser()
