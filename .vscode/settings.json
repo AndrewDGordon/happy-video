@@ -1,0 +1,9 @@
+{
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.diagnosticMode": "off",
+    "python.analysis.ignore": ["*"],
+    "cSpell.enabled": false,
+    "githubCopilot.chat.gptTokens": {
+        "system": "Do not use pip to install packages. Use uv instead.",
+    }
+}
