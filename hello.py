@@ -5,14 +5,49 @@
 import time
 
 # --- CONFIGURATION ---
-SOURCE_MEDIA_NAME = "Peacemaking - Render 1.mp4"  # Source media file name
-TARGET_TIMELINE_NAME = "Append_Teaser_Simplified_V2"  # Timeline name for this version
+SOURCE_MEDIA_NAME = "Dave Sands clip.mkv"  # Source media file name
+TARGET_TIMELINE_NAME = "Auto Timeline 2"  # Timeline name for this version
 VIDEO_TRACK_FOR_CLIPS = 1  # Target video track (1-indexed). 0 or less means no video.
 AUDIO_TRACK_FOR_CLIPS = 1  # Target audio track (1-indexed). 0 or less means no audio.
 
 # Clips data: (start_timecode, end_timecode, optional_description)
-# The third element (text content/description) from the original script is ignored here.
+# These segments are chosen for their standalone impact and clarity.
 clips_data = [
+    # 1. The Core Benefit and New Perspective
+    (
+        "0:47",
+        "0:52",
+        "I think whatever you do it will make you a better programmer because it will give you a different way of thinking about programming.",
+    ),
+    # 2. The Fundamental Difference of FP
+    (
+        "1:20",
+        "1:36",
+        "Functional programming is very different... it's built around the simple concept of mathematical functions and values, and how we build values by applying functions, by composing functions and so on.",
+    ),  # Extended slightly for full thought
+    # 3. Why Haskell is Chosen (Its Purity and Depth)
+    (
+        "1:48",
+        "2:00",
+        "Haskell is in some sense the most functional of the functional programming languages... it's the programming language which is most uncompromising about its view on functional programming.",
+    ),
+    # 4. A Powerful Tool: Automated Random Testing
+    (
+        "16:03",
+        "16:19",
+        "We're going to use a library to do automatic testing for us, or rather to do random testing, generate hundreds perhaps thousands of random values and test the properties for us.",
+    ),  # Slightly extended to explain random testing
+    # 5. The Appeal and Learning Journey with Haskell
+    (
+        "2:25",
+        "2:42",
+        "Even though programs seem very short and beautiful, there are of course lots of ways of doing them, of getting things wrong... so I hope that we will not only learn about functional programming in general but some of the very specific details [of] Haskell.",
+    ),  # Shows appeal + realistic learning
+]
+
+# Clips data: (start_timecode, end_timecode, optional_description)
+# The third element (text content/description) from the original script is ignored here.
+clips_data_1 = [
     ("0:44", "0:49", "Faith & Empowerment Series"),
     ("2:38", "2:45", "Empowering Local Peacebuilders"),
     ("4:55", "5:01", "My Practitioner & Embodied Self"),
@@ -24,6 +59,47 @@ clips_data = [
     ("36:03", "36:08", "Empowered to Exemplify"),
     ("56:51", "56:56", "Courage to Name the Unnameable"),
     ("36:56", "37:03", "Peacemaking: A Way of Life"),
+]
+
+# Clips data: (start_timecode, end_timecode, optional_description)
+# The third element (text content/description) from the original script is used as the description.
+clips_data_0 = [
+    # Scene 1: Title & Opening Hook (Visual background)
+    ("0:00", "0:03", "Background for Title Overlay"),
+    # Scene 2: The "Why This is Different" Hook
+    ("0:23", "0:27", "quite a bit more different"),
+    ("0:47", "0:52", "make you a better programmer"),
+    # Scene 3: The Core Idea – Beyond State
+    ("0:59", "1:04", "not based on common imperative/OO idea"),
+    ("1:20", "1:26", "built around mathematical functions and values"),
+    # Scene 4: Introducing Haskell – The "Pure" Choice
+    (
+        "1:42",
+        "1:48",
+        "learn FP through Haskell (says Kestrel)",
+    ),  # Note: Original script error, says "Kestrel"
+    ("1:48", "1:54", "Haskell is most functional"),
+    # ("1:54", "2:00", "most uncompromising"), # Optional part from script, can be added if needed
+    # Scene 5: The "Wow" Moment – Automated Testing with QuickCheck
+    ("16:03", "16:09", "use a library for automatic testing"),
+    ("18:45", "18:47", "QuickCheck failed the test is false (visual)"),
+    ("22:15", "22:17", "Fixed property with ~== (visual)"),
+    ("22:33", "22:35", "OK, passed 100 tests (visual)"),
+    # Scene 6: The Elegance of Recursion
+    ("31:00", "31:06", "idea in recursion: solve bigger from smaller"),
+    ("34:17", "34:19", "power n 0 = 1 (visual + audio snippet)"),
+    (
+        "31:50",
+        "31:55",
+        "n * power n (k-1) (visual + audio snippet 'multiply it by N')",
+    ),  # Or "31:33", "31:38" for a clearer code visual
+    # Scene 7: The Challenge & Call to Action
+    ("37:05", "37:09", "Intersections puzzle slide (visual)"),
+    (
+        "36:59",
+        "37:05",
+        "Audio: 'I'd like you to think about this problem...' (for puzzle visual)",
+    ),
 ]
 
 
